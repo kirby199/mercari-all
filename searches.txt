@@ -1,0 +1,5 @@
+# One Mercari search keyword per line. Lines starting with # are ignored.
+# To add a new search, just add a new line below and commit the file.
+# Results are always sorted newest-first.
+旧アジア
+レリーフ 1st
