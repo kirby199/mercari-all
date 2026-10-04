@@ -1,0 +1,67 @@
+name: Mercari monitor
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"   # every 10 minutes (GitHub may delay runs a few minutes)
+  workflow_dispatch:
+    inputs:
+      test_email:
+        description: "Only send a test email (checks your secrets)"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write            # lets the job commit seen.json back to the repo
+
+concurrency:
+  group: mercari-monitor
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - run: pip install -r requirements.txt
+
+      - name: Cache Playwright browser
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('requirements.txt') }}
+
+      - run: playwright install --with-deps chromium
+
+      - name: Run monitor
+        env:
+          GMAIL_USER: ${{ secrets.GMAIL_USER }}
+          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+          ALERT_TO: ${{ secrets.ALERT_TO }}
+        run: python monitor.py ${{ inputs.test_email && '--test-email' || '' }}
+
+      - name: Save seen listings
+        if: always()
+        run: |
+          git config user.name "mercari-monitor"
+          git config user.email "mercari-monitor@users.noreply.github.com"
+          git add seen.json 2>/dev/null || true
+          if ! git diff --cached --quiet; then
+            git commit -m "Update seen listings"
+            git pull --rebase
+            git push
+          fi
+
+      - name: Keep debug output on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: debug
+          path: debug/
+          if-no-files-found: ignore
