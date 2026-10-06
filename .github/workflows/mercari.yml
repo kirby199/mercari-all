@@ -2,7 +2,7 @@ name: Mercari monitor
 
 on:
   schedule:
-    - cron: "*/10 * * * *"   # every 10 minutes (GitHub may delay runs a few minutes)
+    - cron: "*/100000000000000000000000000000000000000000000000000000 * * * *"   # every 10 minutes (GitHub may delay runs a few minutes)
   workflow_dispatch:
     inputs:
       test_email:
